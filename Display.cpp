@@ -4,51 +4,52 @@
 
 #include "ogl.hpp"
 #include "Shader.hpp"
+#include "Equation.hpp"
 #include <vector>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <numeric>
 
 using std::vector;
 using Eigen::VectorXd;
 using Eigen::Vector2d;
 using Eigen::Vector3f;
+using Eigen::Vector4f;
 using Eigen::Matrix4f;
 
 #ifndef DISPLAY
 #include "Display.hpp"
 
 void Display::draw(){
-	GLuint counts[4];
-	counts[0] = model->getEquationCount();
-	counts[2] = counts[0];
-	counts[1] = model->getPointCount();
-	counts[3] = counts[1];
 
 	short types[4] = {1,0,1,0};
+	Vector4f colour[2] = {{255,255,0,255}, {255,0,255,1}};
 
-	Matrix4f p = projection * view * primal;
-	Matrix4f d = projection * view * dual;
+	Matrix4f p = view;
+	Matrix4f d = view;
 
 
-	glClear(GL_COLOR_BUFFER_BIT);
-	for(int i = 0; i < 8; i += 2){
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	for(int i = 0; i < 4; i += 1){
 		shader.activate();	
-		if(i < 4){
-			glUniformMatrix4fv(matrixID, 1, GL_FALSE, (const float *)p.data());
+		if(i < 2){
+			shader.setUniform(matrixID, (void *)p.data(), 1);
+			shader.setUniform(colourID, (void *)colour[0].data(), 2);
 		}
 		else{
-			glUniformMatrix4fv(matrixID, 1, GL_FALSE, (const float *)d.data());
+			shader.setUniform(matrixID, (void *)d.data(), 1);
+			shader.setUniform(colourID, (void *)colour[1].data(), 2);
 		}
 
 		ogl::draw(
 				window, // screen
 				buffers[i], // buffer
-			   	counts[i/2], // count
-				types[i/2], // type
-				buffers[i + 1], // indices
+			   	counts[i], // count
+				types[i], // type
+				indices[i],  // indices
 				0); // layout variable
 	}
 
@@ -69,26 +70,27 @@ Display::Display(DataModel * m){
 
 	model = m;
 
-	buffers = (GLuint *)malloc(sizeof(GLuint) * 8);
 	backgroundColour = VectorXd(4);
 	backgroundColour << 1, 1, 1, 1;
 	shader.activate();
-	for(int i = 0; i < 8; i += 1){
+	for(int i = 0; i < 4; i += 1){
 		glGenBuffers(1, &buffers[i]);
+		glGenBuffers(1, &indices[i]);
 	}
 	matrixID = shader.getUniform("mvp");
+	colourID = shader.getUniform("colour");
 
 	Matrix4f scale, translate;
-	scale << 2.f/(float)(width),	0, 				0, 0,
-		   		0, 					1.f/(float)height, 	0, 0,
+	scale << (float)(width),	0, 				0, 0,
+		   		0, 					(float)height, 	0, 0,
 				0, 					0, 				1, 0,
 				0, 					0,				0, 1;
 	translate = Matrix4f::Identity();
 	translate(0,3) = (float)width/2.f;
 
-	primal = scale * Matrix4f::Identity(); 
+	primal = Matrix4f::Identity(); 
 
-	dual << translate * scale;
+	dual << Matrix4f::Identity();
 
 	Eigen::Matrix3f v;
 	Vector3f position =  { 1.5f, 0, 0};
@@ -113,7 +115,7 @@ Display::Display(DataModel * m){
 	view(2,3) = -zaxis.dot(position);
 
 
-	
+	//
 	//v.col(2) = (position - target).normalized();
 	//v.col(0) = up.cross(v.col(2)).normalized();
 	//v.col(1) = v.col(2).cross(v.col(0));
@@ -135,38 +137,65 @@ Display::Display(DataModel * m){
 	projection(2,3) = -2.f * (-1 + 3)/range;
 	projection(3,3) = 0;
 
+	glPointSize(4);
 }
 
 
 void Display::updatePoints(){
 
+	Eigen::IOFormat fmt(4, 0, ", ", "", "[", "]");
+	
+	GLuint pointBuffer = buffers[0];
+	GLuint pointIndices = indices[0];
+	GLuint dualPointBuffer = buffers[2];
+	GLuint dualIndices = indices[2];
+
 	vector<Point>::iterator  pnts = model->getPIterator();
-	vector<LinearEquation>::iterator dPnts = model->getDPIterator();
 
-	int pntCount = model->getPointCount();
-
-	vector<Vector2d> eqnPts;
-	for(int i = 0; i < pntCount; i += 1){
-		eqnPts.push_back(Vector2d(0,dPnts->calculateY(0)));
-		eqnPts.push_back(Vector2d(1, 
-				dPnts->calculateY(1)));
-		dPnts += 1;
-	}
-
+	glBindBuffer(GL_ARRAY_BUFFER, pointBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pointIndices);
 	vector<Eigen::Vector2d> points;
-	for(int i = 0; i < pntCount; i += 1){
+	while(!model->iteratorAtEnd(pnts)){
 		Vector2d p(pnts->getX(), pnts->getY());
+		std::cout << "Points updated with " << 
+			p.format(fmt) << std::endl;
 		points.push_back(p);
 		pnts += 1;
 	}
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points) * points.size(), points.data(), GL_STATIC_DRAW);
 
-	GLuint pointBuffer = buffers[0];
-	GLuint pointIndices = buffers[1];
-	GLuint dualPointBuffer = buffers[4];
-	GLuint dualIndices = buffers[5];
+	vector<GLuint> p_indicies(points.size());
+	std::iota(p_indicies.begin(), p_indicies.end(), 0);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(p_indicies) * p_indicies.size(), p_indicies.data(), GL_STATIC_DRAW);
+	
 
-	genVBO(pointBuffer, pointIndices,  (void *)&points[0], index(points.size()), pntCount, 2);
-	genVBO(dualPointBuffer, dualIndices, (void *)&eqnPts[0], index(eqnPts.size()), pntCount, 2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, dualPointBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dualIndices);
+
+	vector<LinearEquation>::iterator dPnts = model->getDPIterator();
+	vector<Vector2d> eqnPts;
+	while(!model->iteratorAtEnd(dPnts)){
+		eqnPts.push_back(Vector2d(0,dPnts->calculateY(0)));
+		eqnPts.push_back(Vector2d(1, 
+				dPnts->calculateY(1)));
+
+		std::cout << "Dual equations  updated with " << 
+			eqnPts[eqnPts.size() -1 ].format(fmt) << " and " <<
+		   eqnPts[eqnPts.size() - 2].format(fmt) << std::endl;
+		dPnts += 1;
+	}
+	vector<GLuint> d_indicies(eqnPts.size());
+	std::iota(d_indicies.begin(), d_indicies.end(), 0);
+
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(d_indicies) * d_indicies.size(), d_indicies.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(eqnPts) * eqnPts.size(), eqnPts.data(), GL_STATIC_DRAW);
+	
+	counts[0] = p_indicies.size();
+	counts[2] = d_indicies.size();
+
+
+
 
 	redraw();
 
@@ -175,38 +204,65 @@ void Display::updatePoints(){
 
 void Display::updateEquations(){
 
+	// Get buffers for updating. Equations and dual points are oddly numbered
+	GLuint eqnBuffer = buffers[1];
+	GLuint eqnIndices = indices[1];
+	GLuint dualPointBuffer = buffers[3];
+	GLuint dualIndices = indices[3];
+	
+	glBindBuffer(GL_ARRAY_BUFFER, eqnBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eqnIndices);
+
+	// get necessary variables for iterating through equation list
 	vector<LinearEquation>::iterator eqns = model->getEIterator();
-	vector<Point>::iterator dEqns = model->getDEIterator();
-
 	int eqnCount = model->getEquationCount();
-	int pntCount = model->getPointCount();
-
 	float ** intervals = model->getIntervals();
 
+	// storage for vertices and indices
 	vector<Vector2d> eqnPts;
-	for(int i = 0; i < eqnCount; i += 1){
+	vector<GLuint> eqnIdx(eqnCount);
+	int i = 0;
+	Eigen::IOFormat fmt(4, 0, ", ", "", "[", "]");
+	while(!model->iteratorAtEnd(eqns)){
 		eqnPts.push_back(Vector2d(intervals[i][0], 
 				eqns->calculateY(intervals[i][0])));
+		eqnIdx.push_back(eqnPts.size() - 1);
+
 		eqnPts.push_back(Vector2d(intervals[i][1], 
 				eqns->calculateY(intervals[i][1])));
-		eqns += 1;
-	}
 
+		std::cout << "Equations updated with " << 
+			eqnPts[ eqnPts.size() - 1 ].format(fmt) << 
+			", and " << eqnPts[ eqnPts.size() - 2 ].format(fmt) << std::endl;
+		eqnIdx.push_back(eqnPts.size() - 1);
+		eqns += 1;
+		i += 1;
+	}
+	glBufferData(GL_ARRAY_BUFFER, eqnPts.size() * sizeof(eqnPts), eqnPts.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, eqnIdx.size() * sizeof(eqnIdx), eqnIdx.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER,dualPointBuffer);	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dualIndices);
+
+	// Storage for dual points
 	vector<Eigen::Vector2d> points;
-	for(int i = 0; i < pntCount; i += 1){
+	vector<Point>::iterator dEqns = model->getDEIterator();
+	vector<GLuint> ptsIdx;
+	while(!model->iteratorAtEnd(dEqns)){
+		std::cout << "Dual Points updated with " << 
+			points[ points.size() - 1 ].format(fmt) << 
+			", and " << points[ points.size() - 2 ].format(fmt) << std::endl;
 		Vector2d p(dEqns->getX(), dEqns->getY());
 		points.push_back(p);
+		ptsIdx.push_back(points.size() - 1);
 		dEqns += 1;
 	}
 
-	GLuint pointBuffer = buffers[2];
-	GLuint pointIndices = buffers[3];
-	GLuint dualPointBuffer = buffers[6];
-	GLuint dualIndices = buffers[7];
+	counts[ 1 ] = eqnIdx.size();
+	counts[3] = ptsIdx.size();
 
-	genVBO(pointBuffer, pointIndices,  (void *)&points[0], index(points.size()), pntCount, 2);
-	genVBO(dualPointBuffer, dualIndices, (void *)&eqnPts[0], index(eqnPts.size()), eqnCount, 2);
-
+	glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(points), points.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, ptsIdx.size() * sizeof(ptsIdx), ptsIdx.data(), GL_STATIC_DRAW);
 	redraw();
 }
 
@@ -246,4 +302,12 @@ void Display::updateHeight(int h){
 	height = h;
 	recreateMatrices();
 }
+
+
+Point Display::getMousePosition(){
+	double x, y;
+	glfwGetCursorPos(window, &x, &y);
+	return Point(x, y);
+}
+
 #endif

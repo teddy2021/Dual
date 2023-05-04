@@ -40,6 +40,8 @@ class DataModel{
 
 		vector<Point>::iterator getDEIterator();
 		vector<LinearEquation>::iterator getDPIterator();
+		bool iteratorAtEnd(vector<Point>::iterator it);
+		bool iteratorAtEnd(vector<LinearEquation>::iterator it);
 
 		float ** getIntervals();
 

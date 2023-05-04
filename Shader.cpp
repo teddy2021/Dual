@@ -134,6 +134,10 @@ void Shader::setUniform(GLuint id, void *data, short type){
 	switch(type){
 		case 1:
 			glUniformMatrix4fv(id, 1, GL_FALSE, (const float *)data);
+			break;
+		case 2:
+			glUniform4fv(id, 1, (const float*)data);
+			break;
 	}
 }
 

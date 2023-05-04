@@ -5,6 +5,7 @@
 #include "ogl.hpp"
 #include "Shader.hpp"
 #include "DataModel.hpp"
+#include "Point.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <eigen3/Eigen/Dense>
@@ -21,10 +22,15 @@ class Display{
 		GLFWwindow * window;
 		VectorXd backgroundColour;
 		DataModel * model;
-		GLuint * buffers;
-		GLuint matrixID;
+		
 		Matrix4f primal, dual, view, projection;
 		GLuint vao;
+		
+		GLuint counts[4];
+		GLuint buffers[4];
+		GLuint indices[4];
+		GLuint matrixID;
+		GLuint colourID;
 
 		Shader shader;
 
@@ -49,6 +55,8 @@ class Display{
 
 		void updateWidth(int w);
 		void updateHeight(int h);
+
+		Point getMousePosition();
 
 };
 

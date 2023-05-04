@@ -100,6 +100,13 @@ vector<LinearEquation>::iterator DataModel::getDPIterator(){
 	return dPoints.begin();
 }
 
+bool DataModel::iteratorAtEnd(vector<Point>::iterator it){
+	return it == points.end() || it == dEquations.end();
+}
+
+bool DataModel::iteratorAtEnd(vector<LinearEquation>::iterator it){
+	return it == equations.end() || it == dPoints.end();
+}
 
 int DataModel::getEquationCount(){
 	return equationCount;

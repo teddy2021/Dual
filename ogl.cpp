@@ -32,7 +32,7 @@ GLFWwindow * setup(int width, int height){
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow * window;
-	window = glfwCreateWindow(width, height, "Galaxy Generator V 0.1", 
+	window = glfwCreateWindow(width, height, "Dual Visualizer V 1.0", 
 			NULL, NULL);
 	if(NULL == window){
 		perror("Failed to create window");
@@ -92,8 +92,10 @@ int draw(GLFWwindow * window, GLuint buffer,
 
 	
 
-	glEnableVertexAttribArray(array_no);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices);
+	
+	glEnableVertexAttribArray(array_no);
 	glVertexAttribPointer(
 			array_no, 
 			2,
@@ -102,7 +104,6 @@ int draw(GLFWwindow * window, GLuint buffer,
 			0,
 			(void*)0
 			);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices);
 	if(1 == type){
 		glDrawElements(
 			GL_POINTS,
@@ -119,6 +120,8 @@ int draw(GLFWwindow * window, GLuint buffer,
 			(void*)0
 			);
 	}
+
+	glDisableVertexAttribArray(array_no);
 
 	return 0;
 }

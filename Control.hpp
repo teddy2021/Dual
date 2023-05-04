@@ -4,6 +4,8 @@
 
 #include "DataModel.hpp"
 #include "Display.hpp"
+#include "Enums.hpp"
+#include "Equation.hpp"
 #include <GLFW/glfw3.h>
 
 #ifndef CONTROL
@@ -12,13 +14,15 @@
 class Controller{
 
 	private:
-	   	DataModel * model;
+		Point origin;
+	   	mouse_state ms;
+		DataModel * model;
 		double  prev_x, prev_y;
 		double  dx, dy;
 		Display * display;
 
 	public:
-		Controller(DataModel * m){model = m;};
+		Controller(DataModel * m){model = m; ms = neutral;};
 		void setDisplay(Display * d){display = d;};
 
 		void updateMousePos(double x, double y);
