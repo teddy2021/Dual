@@ -9,7 +9,7 @@ out vec4 frag_colour;
 
 
 void main(){
-	vec4 temp = mvp * vec4(pos, 0, 1);
-	position = temp;
+	
+	gl_Position = mvp * vec4(pos, 0, 1);
 	frag_colour = colour;
 }

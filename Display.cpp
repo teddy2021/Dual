@@ -15,7 +15,7 @@
 
 using std::vector;
 using Eigen::VectorXd;
-using Eigen::Vector2d;
+using Eigen::Vector2f;
 using Eigen::Vector3f;
 using Eigen::Vector4f;
 using Eigen::Matrix4f;
@@ -23,24 +23,28 @@ using Eigen::Matrix4f;
 #ifndef DISPLAY
 #include "Display.hpp"
 
+void Display::addVector(int set_index, Eigen::Vector2f v) {
+    objectVertices[set_index].vertices.push_back(v);
+    objectVertices[set_index].indices.
+		push_back(
+			objectVertices[set_index].
+			vertices.size() - 1);
+}
+
 void Display::draw(){
 
 	short types[4] = {1,0,1,0};
 	Vector4f colour[2] = {{255,255,0,255}, {255,0,255,1}};
 
-	Matrix4f p = view;
-	Matrix4f d = view;
-
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	for(int i = 0; i < 4; i += 1){
 		shader.activate();	
 		if(i < 2){
-			shader.setUniform(matrixID, (void *)p.data(), 1);
+			shader.setUniform(matrixID, (void *)primal.data(), 1);
 			shader.setUniform(colourID, (void *)colour[0].data(), 2);
 		}
 		else{
-			shader.setUniform(matrixID, (void *)d.data(), 1);
+			shader.setUniform(matrixID, (void *)dual.data(), 1);
 			shader.setUniform(colourID, (void *)colour[1].data(), 2);
 		}
 
@@ -80,63 +84,7 @@ Display::Display(DataModel * m){
 	matrixID = shader.getUniform("mvp");
 	colourID = shader.getUniform("colour");
 
-	Matrix4f scale, translate;
-	scale << (float)(width),	0, 				0, 0,
-		   		0, 					(float)height, 	0, 0,
-				0, 					0, 				1, 0,
-				0, 					0,				0, 1;
-	translate = Matrix4f::Identity();
-	translate(0,3) = (float)width/2.f;
-
-	primal = Matrix4f::Identity(); 
-
-	dual << Matrix4f::Identity();
-
-	Eigen::Matrix3f v;
-	Vector3f position =  { 1.5f, 0, 0};
-	Vector3f target = { -1.f,  0, 0 };
-	Vector3f up 	= { 0, 1.f, 0 };
-
-	Vector3f zaxis = target - position;
-	zaxis = zaxis.normalized();
-
-	Vector3f xaxis = zaxis.cross(up).normalized();
-	Vector3f yaxis = xaxis.cross(zaxis).normalized();
-	view = Matrix4f::Identity();
-	for(int i = 0; i < 3; i += 1){
-		view(0, i) = xaxis(i);
-		view(1, i) = yaxis(i);
-		view(2, i) = zaxis(i);
-
-	}
-
-	view(0,3) = -xaxis.dot(position);
-	view(1,3) = -yaxis.dot(position);
-	view(2,3) = -zaxis.dot(position);
-
-
-	//
-	//v.col(2) = (position - target).normalized();
-	//v.col(0) = up.cross(v.col(2)).normalized();
-	//v.col(1) = v.col(2).cross(v.col(0));
-
-	//view.topLeftCorner(3,3) = v.transpose();
-	//view.topRightCorner(3,1) = -v.transpose() * position;
-	//view(3,3) = 1.f;
-	
-	projection = Matrix4f::Zero();
-
-	float theta = 5.0f;
-	float range = 3 - (-1);
-	float invtan = 1./tan(theta);
-
-	projection(0,0) = invtan / (float)((float)width/(float)height);
-	projection(1,1) = invtan;
-	projection(2,2) = -(-1 + 3)/range;
-	projection(3,2) = -1.f;
-	projection(2,3) = -2.f * (-1 + 3)/range;
-	projection(3,3) = 0;
-
+	recreateMatrices();
 	glPointSize(4);
 }
 
@@ -147,55 +95,75 @@ void Display::updatePoints(){
 	
 	GLuint pointBuffer = buffers[0];
 	GLuint pointIndices = indices[0];
-	GLuint dualPointBuffer = buffers[2];
-	GLuint dualIndices = indices[2];
 
-	vector<Point>::iterator  pnts = model->getPIterator();
 
 	glBindBuffer(GL_ARRAY_BUFFER, pointBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pointIndices);
-	vector<Eigen::Vector2d> points;
+	
+	vector<Point>::iterator  pnts = model->getPIterator();
+
 	while(!model->iteratorAtEnd(pnts)){
-		Vector2d p(pnts->getX(), pnts->getY());
-		std::cout << "Points updated with " << 
-			p.format(fmt) << std::endl;
-		points.push_back(p);
+		Vector2f p(pnts->getX(), pnts->getY());
+		if(std::find(
+				objectVertices[0].vertices.begin(), 
+				objectVertices[0].vertices.end(), p)
+			 == objectVertices[0].vertices.end()){
+			addVector(0, p);
+		}
 		pnts += 1;
 	}
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points) * points.size(), points.data(), GL_STATIC_DRAW);
 
-	vector<GLuint> p_indicies(points.size());
-	std::iota(p_indicies.begin(), p_indicies.end(), 0);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(p_indicies) * p_indicies.size(), p_indicies.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 
+				sizeof(
+					objectVertices[0].vertices) * 
+					objectVertices[0].vertices.size(), 
+				objectVertices[0].vertices.data(), 
+				GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
+					sizeof(objectVertices[0].indices) * 
+							objectVertices[0].indices.size(), 
+					objectVertices[0].indices.data(), 
+					GL_STATIC_DRAW);
 	
 
 
+	GLuint dualPointBuffer = buffers[2];
+	GLuint dualIndices = indices[2];
 	glBindBuffer(GL_ARRAY_BUFFER, dualPointBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dualIndices);
 
 	vector<LinearEquation>::iterator dPnts = model->getDPIterator();
-	vector<Vector2d> eqnPts;
 	while(!model->iteratorAtEnd(dPnts)){
-		eqnPts.push_back(Vector2d(0,dPnts->calculateY(0)));
-		eqnPts.push_back(Vector2d(1, 
-				dPnts->calculateY(1)));
+		Vector2f p(0,dPnts->calculateY(0));
+		Vector2f q(1,dPnts->calculateY(1));
+		if(std::find(
+				objectVertices[2].vertices.begin(),
+				objectVertices[2].vertices.end(), 
+				p) == objectVertices[0].vertices.end()
+			||
+			std::find(
+				objectVertices[2].vertices.begin(), 
+				objectVertices[2].vertices.end(), q) == 
+			objectVertices[0].vertices.end()){
 
-		std::cout << "Dual equations  updated with " << 
-			eqnPts[eqnPts.size() -1 ].format(fmt) << " and " <<
-		   eqnPts[eqnPts.size() - 2].format(fmt) << std::endl;
+			addVector(2, p);
+			addVector(2, q);
+		}
 		dPnts += 1;
 	}
-	vector<GLuint> d_indicies(eqnPts.size());
-	std::iota(d_indicies.begin(), d_indicies.end(), 0);
-
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(d_indicies) * d_indicies.size(), d_indicies.data(), GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(eqnPts) * eqnPts.size(), eqnPts.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 
+					sizeof(objectVertices[2].vertices) * 
+						objectVertices[2].vertices.size(), 
+					objectVertices[2].vertices.data(),
+					GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
+					sizeof(objectVertices[2].indices) * 
+						objectVertices[2].indices.size(), 
+					objectVertices[2].indices.data(), 
+					GL_STATIC_DRAW);
 	
-	counts[0] = p_indicies.size();
-	counts[2] = d_indicies.size();
-
-
-
+	counts[0] = objectVertices[0].indices.size();
+	counts[2] = objectVertices[2].indices.size();
 
 	redraw();
 
@@ -207,62 +175,59 @@ void Display::updateEquations(){
 	// Get buffers for updating. Equations and dual points are oddly numbered
 	GLuint eqnBuffer = buffers[1];
 	GLuint eqnIndices = indices[1];
-	GLuint dualPointBuffer = buffers[3];
-	GLuint dualIndices = indices[3];
 	
 	glBindBuffer(GL_ARRAY_BUFFER, eqnBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eqnIndices);
 
 	// get necessary variables for iterating through equation list
 	vector<LinearEquation>::iterator eqns = model->getEIterator();
-	int eqnCount = model->getEquationCount();
 	float ** intervals = model->getIntervals();
 
 	// storage for vertices and indices
-	vector<Vector2d> eqnPts;
-	vector<GLuint> eqnIdx(eqnCount);
 	int i = 0;
 	Eigen::IOFormat fmt(4, 0, ", ", "", "[", "]");
 	while(!model->iteratorAtEnd(eqns)){
-		eqnPts.push_back(Vector2d(intervals[i][0], 
-				eqns->calculateY(intervals[i][0])));
-		eqnIdx.push_back(eqnPts.size() - 1);
+		Vector2f p(intervals[i][0], 
+					eqns->calculateY(intervals[i][0]));
+		Vector2f q(intervals[i][1], 
+					eqns->calculateY(intervals[i][1]));
+		if( std::find(objectVertices[1].vertices.begin(), objectVertices[1].vertices.end(), q) == objectVertices[1].vertices.end()
+		 	||
+		 	std::find(objectVertices[1].vertices.begin(), objectVertices[1].vertices.end(), p) == objectVertices[1].vertices.end()){
 
-		eqnPts.push_back(Vector2d(intervals[i][1], 
-				eqns->calculateY(intervals[i][1])));
-
-		std::cout << "Equations updated with " << 
-			eqnPts[ eqnPts.size() - 1 ].format(fmt) << 
-			", and " << eqnPts[ eqnPts.size() - 2 ].format(fmt) << std::endl;
-		eqnIdx.push_back(eqnPts.size() - 1);
+			addVector(1, p);
+			addVector(1, q);
+		}
 		eqns += 1;
 		i += 1;
 	}
-	glBufferData(GL_ARRAY_BUFFER, eqnPts.size() * sizeof(eqnPts), eqnPts.data(), GL_STATIC_DRAW);
-	glBufferData(GL_ARRAY_BUFFER, eqnIdx.size() * sizeof(eqnIdx), eqnIdx.data(), GL_STATIC_DRAW);
 
+	glBufferData(GL_ARRAY_BUFFER, objectVertices[1].vertices.size() * sizeof(objectVertices[1].vertices), objectVertices[1].vertices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, objectVertices[1].indices.size() * sizeof(objectVertices[1].indices), objectVertices[1].indices.data(), GL_STATIC_DRAW);
+
+
+
+	GLuint dualPointBuffer = buffers[3];
+	GLuint dualIndices = indices[3];
 	glBindBuffer(GL_ARRAY_BUFFER,dualPointBuffer);	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dualIndices);
 
 	// Storage for dual points
-	vector<Eigen::Vector2d> points;
 	vector<Point>::iterator dEqns = model->getDEIterator();
-	vector<GLuint> ptsIdx;
 	while(!model->iteratorAtEnd(dEqns)){
-		std::cout << "Dual Points updated with " << 
-			points[ points.size() - 1 ].format(fmt) << 
-			", and " << points[ points.size() - 2 ].format(fmt) << std::endl;
-		Vector2d p(dEqns->getX(), dEqns->getY());
-		points.push_back(p);
-		ptsIdx.push_back(points.size() - 1);
+		Vector2f p(dEqns->getX(), dEqns->getY());
+		if( std::find(objectVertices[3].vertices.begin(), objectVertices[3].vertices.end(), p) == objectVertices[3].vertices.end()){
+			
+			addVector(3, p);
+		}
 		dEqns += 1;
 	}
 
-	counts[ 1 ] = eqnIdx.size();
-	counts[3] = ptsIdx.size();
+	counts[ 1 ] = objectVertices[1].indices.size();
+	counts[3] = objectVertices[3].indices.size();
 
-	glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(points), points.data(), GL_STATIC_DRAW);
-	glBufferData(GL_ARRAY_BUFFER, ptsIdx.size() * sizeof(ptsIdx), ptsIdx.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, objectVertices[3].vertices.size() * sizeof(objectVertices[3].vertices), objectVertices[3].vertices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, objectVertices[3].indices.size() * sizeof(objectVertices[3].indices), objectVertices[3].indices.data(), GL_STATIC_DRAW);
 	redraw();
 }
 
@@ -284,13 +249,71 @@ GLFWwindow * Display::getWindow(){
 }
 
 void Display::recreateMatrices(){
-	primal << 	(float)(width)/2.f, 0, 1,
-		   		0, height, 1,
-				0, 0, 1;
+	float left = 0.0f;
+	float right = width / 2.0f;
+	float bottom = 0.0f;
+	float top = height;
 
-	dual << 	(float)(width)/2.f, 0, (float)(width)/2.f,
-		 		0, height, 1,
-				0 ,0, 1;
+	// Set up the orthographic projection matrix
+	Eigen::Matrix4f projection_left = Eigen::Matrix4f::Identity();
+	projection_left(0, 0) = 2.0f / (right - left);
+	projection_left(1, 1) = 2.0f / (top - bottom);
+	projection_left(2, 2) = -1.0f;
+	projection_left(3, 0) = -(right + left) / (right - left);
+	projection_left(3, 1) = -(top + bottom) / (top - bottom);
+
+	// Set up the view matrix
+	Eigen::Vector3f camera_pos_left(0.0f, 0.0f, 0.0f);
+	Eigen::Vector3f camera_target_left(0.0f, 0.0f, -1.0f);
+	Eigen::Vector3f camera_up_left(0.0f, 1.0f, 0.0f);
+	Eigen::Matrix4f view_left = Eigen::Matrix4f::Identity();
+	view_left.block<3, 1>(0, 0) = (camera_up_left.cross(camera_target_left)).normalized();
+	view_left.block<3, 1>(0, 1) = (camera_up_left).normalized();
+	view_left.block<3, 1>(0, 2) = -(camera_target_left).normalized();
+	view_left(0, 3) = -camera_pos_left(0);
+	view_left(1, 3) = -camera_pos_left(1);
+	view_left(2, 3) = -camera_pos_left(2);
+
+	// Set up the model matrix (assuming your user items are centered at (0, 0))
+	Eigen::Matrix4f model_left = Eigen::Matrix4f::Identity();
+	model_left(0, 3) = -width / 4.0f;
+	model_left(1, 3) = height / 2.0f;
+
+	// Combine the matrices
+	primal = projection_left * view_left * model_left;
+	left = width / 2.0f;
+	right = width;
+	bottom = 0.0f;
+	top = height;
+
+	// Set up the orthographic projection matrix
+	Matrix4f projection_right = Matrix4f::Identity();
+	projection_right(0, 0) = 2.0f / (right - left);
+	projection_right(1, 1) = 2.0f / (top - bottom);
+	projection_right(2, 2) = -2.0f;
+	projection_right(3, 0) = -(right + left) / (right - left);
+	projection_right(3, 1) = -(top + bottom) / (top - bottom);
+	projection_right(3, 2) = -1.0f;
+
+	// Set up the view matrix
+	Vector3f camera_pos_right = Vector3f(0.0f, 0.0f, 0.0f);
+	Vector3f camera_target_right = Vector3f(0.0f, 0.0f, -1.0f);
+	Vector3f camera_up_right = Vector3f(0.0f, 1.0f, 0.0f);
+	Eigen::Matrix4f view_right = Eigen::Matrix4f::Identity();
+	view_right.block<3, 1>(0, 0) = (camera_up_right.cross(camera_target_right)).normalized();
+	view_right.block<3, 1>(0, 1) = (camera_up_right).normalized();
+	view_right.block<3, 1>(0, 2) = -(camera_target_right).normalized();
+	view_right(0, 3) = -camera_pos_right(0);
+	view_right(1, 3) = -camera_pos_right(1);
+	view_right(2, 3) = -camera_pos_right(2);
+
+	// Set up the model matrix (assuming your result items are centered at (0, 0))
+	Matrix4f model_right = Matrix4f::Identity();
+	model_right(0, 3) = width / 4.0f;
+	model_right(1, 3) = height / 2.0f;
+
+	// Combine the matrices
+	dual = projection_right * view_right * model_right;
 }
 
 void Display::updateWidth(int w){

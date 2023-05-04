@@ -12,9 +12,16 @@
 
 using Eigen::VectorXd;
 using Eigen::Matrix4f;
+using Eigen::Vector2f;
 
 #ifndef DISPLAY
 #define DISPLAY
+
+struct VectorSet {
+    std::vector<Eigen::Vector2f> vertices;
+    std::vector<int> indices;
+};
+
 
 class Display{
 
@@ -29,6 +36,8 @@ class Display{
 		GLuint counts[4];
 		GLuint buffers[4];
 		GLuint indices[4];
+
+		VectorSet objectVertices[4];
 		GLuint matrixID;
 		GLuint colourID;
 
@@ -38,6 +47,9 @@ class Display{
 
 		void draw();
 		void recreateMatrices();
+
+	private:
+		void addVector(int set_index, Vector2f v);
 
 	public:
 		Display(DataModel * m);
