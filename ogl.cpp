@@ -114,7 +114,7 @@ int draw(GLFWwindow * window, GLuint buffer,
 	}
 	else{
 		glDrawElements(
-			GL_LINES,
+			GL_LINE_STRIP,
 			count,
 			GL_UNSIGNED_INT,
 			(void*)0

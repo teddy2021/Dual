@@ -8,8 +8,10 @@
 #include <iomanip>
 #include <string>
 #include <vector>
+#include <eigen3/Eigen/Dense>
 
 using std::vector;
+using Eigen::Vector2f;
 
 
 int main(){
@@ -79,7 +81,7 @@ int main(){
 	for(int i = 0; i < 10; i += 1){
 		float m = rand() % 20;
 		float b = rand() % 20;
-		laPtrTest.push_back(LinearEquation(m, b));
+		laPtrTest.push_back(LinearEquation( m, b ));
 
 		std::cout << m << "x + " << b << " equation gives -> " <<
 		   	laPtrTest[i].toString() << "; eval'd at 5: " << 

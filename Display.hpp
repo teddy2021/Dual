@@ -19,7 +19,7 @@ using Eigen::Vector2f;
 
 struct VectorSet {
     std::vector<Eigen::Vector2f> vertices;
-    std::vector<int> indices;
+    std::vector<GLuint> indices;
 };
 
 

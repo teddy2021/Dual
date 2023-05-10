@@ -3,6 +3,9 @@
 #include <string>
 #include <algorithm>
 #include <stdio.h>
+#include <eigen3/Eigen/Dense>
+
+using Eigen::VectorXf;
 
 #ifndef EQN 
 #define EQN 
@@ -12,9 +15,9 @@ class Equation {
 	
 	protected:
 		int degree;
-		float * coefficients;
+		VectorXf coefficients;
 		int getDegree();
-		float * getCoefficients();
+		VectorXf  getCoefficients();
 	
 	public:
 		Equation();
@@ -46,8 +49,8 @@ class LinearEquation : public Equation {
 		LinearEquation():Equation(2){};
 
 		LinearEquation(float m, float b) : Equation(2){
-			coefficients[0] = m;
-			coefficients[1] = b;
+			coefficients[0] = b;
+			coefficients[1] = m;
 		};
 
 		LinearEquation(const LinearEquation &src);

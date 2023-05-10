@@ -4,23 +4,20 @@
 #include <string>
 #include <stdlib.h>
 #include <stdio.h>
+#include <eigen3/Eigen/Dense>
+
+using Eigen::VectorXf;
 
 #ifndef LIN
 #include "Equation.hpp"
 
 float LinearEquation::calculateY(float x){
-	float * coef = getCoefficients();
-	float m = coef[1];
-	float b = coef[0];
-	return (m * x) + b;
+	return Equation::calculateY(x);
 }
 
-std::string LinearEquation::toString(){
 
-	float * coef = getCoefficients();
-	std::string out = std::to_string(coef[0]) + "x + " + 
-		std::to_string(coef[1]);
-	return out;
+std::string LinearEquation::toString(){
+	return Equation::toString();
 }
 
 
@@ -35,22 +32,17 @@ bool LinearEquation::operator!=(LinearEquation other){
 
 
 LinearEquation::LinearEquation(const LinearEquation &src): Equation(2){
-	coefficients[0] = src.coefficients[0];
-	coefficients[1] = src.coefficients[1];
+	coefficients << src.coefficients(0), src.coefficients(1);
 }
 
 
 LinearEquation::~LinearEquation(){
-	free(coefficients);
-	coefficients = NULL;
 }
 
 LinearEquation& LinearEquation::operator=(const LinearEquation &other){
 	if(this != &other){
 		degree = 2;
-		coefficients = (float *)malloc(sizeof(float) * 2);
-		coefficients[0] = other.coefficients[0];
-		coefficients[1] = other.coefficients[1];
+		coefficients << other.coefficients( 0 ),  other.coefficients( 1 );
 	}
 	return *this;
 }

@@ -18,26 +18,27 @@
 void Controller::onLeftDown(){
 	ms = l_down;
 	origin = display->getMousePosition();
-	origin.setX(origin.getX() / ( ( (float)display->getWidth())/2.f ) ); 
-	origin.setY(origin.getY() / (float)display->getHeight() ) ;
+	std::cout << "Origin in screen space: " << origin.toString() << std::endl;
+	origin.setX((
+			(2.f *  origin.getX() ) / 
+			( ( (float)display->getWidth()) ) )- 1.f
+			); 
+	origin.setY((origin.getY() / 	(float)display->getHeight() ) );
+	std::cout << "Origin normalized: " << origin.toString() << std::endl;
 }
 
 
 void Controller::onLeftUp(){
 
 
-	std::cout << "(dx, dy) = (" << dx << ", " << dy << ")" << std::endl;
-	std::cout << "(ox, oy) = (" << origin.getX() << ", " 
-		<< origin.getY() << ")" << std::endl;
-	if(dx < 20 || dy < 20){
-		std::cout << "\tPoint (x, y) = " << origin.toString() << std::endl;
+	if(dx < 30 || dy < 30){
 		model->addPoint(origin);
 		display->updatePoints();
 	}
 	else{
 
-		float x = origin.getX() / (float)display->getWidth();
-		float y = origin.getY() / (float)display->getHeight();
+		float x = origin.getX();
+		float y = origin.getY();
 	
 		Point p(x, y);
 		float x2 = x + (dx/( (float)display->getWidth())/2.f);
@@ -46,7 +47,6 @@ void Controller::onLeftUp(){
 		Point q(x2, y2);
 
 		LinearEquation l = interpolate(p, q);
-		std::cout << "\tEqn = " << l.toString() << std::endl;
 		model->addEquation(l,prev_x - dx, prev_x);
 		display->updateEquations();
 	}
@@ -71,8 +71,8 @@ void Controller::onRightUp(){
 
 void Controller::updateMousePos(double x, double y){
 	if (ms == l_down){
-		dx += x - prev_x;
-		dy += y - prev_y;
+		dx += x/display->getWidth() - prev_x;
+		dy += y/display->getHeight() - prev_y;
 
 		prev_x = x;
 		prev_y = y;
@@ -81,27 +81,28 @@ void Controller::updateMousePos(double x, double y){
 
 void Controller::handleKeys(GLFWwindow * window, int key, 
 		int scancode, int action, int mods){
-	switch(key){
-		case GLFW_KEY_P:
-			vector<LinearEquation>::iterator eqns = model->getEIterator();
-			vector<Point>::iterator pts = model->getPIterator();
+	if(action == GLFW_PRESS){ 
+		switch(key){
+		   case GLFW_KEY_P:
+			   vector<LinearEquation>::iterator eqns = model->getEIterator();
+			   vector<Point>::iterator pts = model->getPIterator();
 
-			std::cout << "Equations: " << std::endl;
-			for(int i = 0; i < model->getEquationCount(); i += 1){
-				std::cout << eqns->toString() << std::endl;
-				eqns += 1;
-			}
+			   std::cout << "Equations: " << std::endl;
+			   for(int i = 0; i < model->getEquationCount(); i += 1){
+				   std::cout << eqns->toString() << std::endl;
+				   eqns += 1;
+			   }
 
-			std::cout << "Points: " << std::endl;
-			for(int i = 0; i < model->getPointCount(); i += 1){
-				std::cout << pts->toString() << std::endl;
-				pts += 1;
-			}
+			   std::cout << "Points: " << std::endl;
+			   for(int i = 0; i < model->getPointCount(); i += 1){
+				   std::cout << pts->toString() << std::endl;
+				   pts += 1;
+			   }
 
-			std::cout << std::endl;
-			break;
+			   std::cout << std::endl;
+			   break;
+		}
 	}
-
 }
 
 #endif
