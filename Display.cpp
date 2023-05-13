@@ -5,7 +5,8 @@
 #include "ogl.hpp"
 #include "Shader.hpp"
 #include "Equation.hpp"
-#include <vector>
+#include "Enums.hpp"
+
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <GL/glew.h>
@@ -13,7 +14,6 @@
 #include <iostream>
 #include <numeric>
 
-using std::vector;
 using Eigen::VectorXd;
 using Eigen::Vector2f;
 using Eigen::Vector3f;
@@ -24,7 +24,6 @@ using Eigen::Matrix4f;
 #include "Display.hpp"
 
 	GLuint s_buf, s_idx;
-	
 	
 	Vector2f square[4] = {
 		{1.f,1.f},
@@ -38,36 +37,37 @@ using Eigen::Matrix4f;
 		2, 3,
 		3, 0
 	};
-void Display::addVector(int set_index, Eigen::Vector2f v) {
-    objectVertices[set_index].vertices.push_back(v);
-    objectVertices[set_index].indices.
-		push_back(
-			objectVertices[set_index].
-			vertices.size() - 1);
 
-}
+bool write = false;
 
 void Display::draw(){
+	if(write){
+		Eigen::IOFormat fmt(4,0," ",",", "[", "]");
+		if(model->getEquationCount() != 0){
+			std::cout << (* model->getDataPointer(1) )[0].format(fmt) << std::endl;
+			std::cout << (* model->getDataPointer(1) )[1].format(fmt) << std::endl << std::endl;
+		}
+		if(model->getPointCount() != 0){
+			std::cout << (* model->getDataPointer(0) )[0].format(fmt) << std::endl;
+		}
+		write = false;
+	}
 
-	short types[4] = {1,0,1,0};
+	draw_state types[4] = {point,line,line,point};
 	Vector4f colour[2] = {{255,255,0,255}, {255,0,255,1}};
 
 
 	shader.activate();
 	shader.setUniform(matrixID, (void*)dual.data(), 1);
 	shader.setUniform(colourID, (void*)colour[1].data(), 2);
-	ogl::draw(window, s_buf, 8, 0, s_idx, 0);
-
+	ogl::draw(window, s_buf, 8, line, s_idx, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	
+	Eigen::IOFormat fmt(4, 0, ", ",  "", "[", "]");
 	for(int i = 0; i < 4; i += 1){
-		if(objectVertices[i].vertices.size() == 0 ||
-				objectVertices[i].indices.size() == 0){
-			continue;
-		}
-		shader.activate();	
+
+		shader.activate();
 		if(i < 2){
 			shader.setUniform(matrixID, (void *)primal.data(), 1);
 			shader.setUniform(colourID, (void *)colour[0].data(), 2);
@@ -116,10 +116,8 @@ Display::Display(DataModel * m){
 	for(int i = 0; i < 4; i += 1){
 		glGenBuffers(1, &buffers[i]);
 		glGenBuffers(1, &indices[i]);
-		
-		objectVertices[i].vertices = vector<Vector2f>(0);
-		objectVertices[i].indices = vector<GLuint>(0);
 	}
+
 	matrixID = shader.getUniform("mvp");
 	colourID = shader.getUniform("colour");
 
@@ -132,149 +130,42 @@ Display::Display(DataModel * m){
 	std::cout << "Dual After:\n" << dual << std::endl;
 
 
-	glViewport(-1080/2,-608/20, width, height);
+	glViewport(0,0, width, height);
 	glPointSize(4);
 }
 
 
 void Display::updatePoints(){
+	write = true;
 
-	Eigen::IOFormat fmt(4, 0, ", ", "", "[", "]");
-	
 	GLuint pointBuffer = buffers[0];
 	GLuint pointIndices = indices[0];
 
-
-	glBindBuffer(GL_ARRAY_BUFFER, pointBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pointIndices);
-	
-	vector<Point>::iterator  pnts = model->getPIterator();
-
-	while(!model->iteratorAtEnd(pnts)){
-		Vector2f p(pnts->getX(), pnts->getY());
-		if(std::find(
-				objectVertices[0].vertices.begin(), 
-				objectVertices[0].vertices.end(), p)
-			 == objectVertices[0].vertices.end()){
-			addVector(0, p);
-		}
-		pnts += 1;
-	}
-
-	glBufferData(GL_ARRAY_BUFFER, 
-				sizeof(Vector2f) * 
-					objectVertices[0].vertices.size(), 
-				objectVertices[0].vertices.data(), 
-				GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
-					sizeof(GLuint) * 
-							objectVertices[0].indices.size(), 
-					objectVertices[0].indices.data(), 
-					GL_STATIC_DRAW);
-	
-
+	ogl::bind(pointBuffer, model->getDataPointer(0),
+			pointIndices, model->getIndexPointer(0));
 
 	GLuint dualPointBuffer = buffers[2];
 	GLuint dualIndices = indices[2];
-	glBindBuffer(GL_ARRAY_BUFFER, dualPointBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dualIndices);
 
-	vector<LinearEquation>::iterator dPnts = model->getDPIterator();
-	while(!model->iteratorAtEnd(dPnts)){
-		Vector2f p(0,dPnts->calculateY(0));
-		Vector2f q(1,dPnts->calculateY(1));
-		if(std::find(
-				objectVertices[2].vertices.begin(),
-				objectVertices[2].vertices.end(), 
-				p) == objectVertices[2].vertices.end()
-			||
-			std::find(
-				objectVertices[2].vertices.begin(), 
-				objectVertices[2].vertices.end(), q) == 
-			objectVertices[2].vertices.end()){
-
-			addVector(2, p);
-			addVector(2, q);
-		}
-		dPnts += 1;
-	}
-	glBufferData(GL_ARRAY_BUFFER, 
-					sizeof(Vector2f) * 
-						objectVertices[2].vertices.size(), 
-					objectVertices[2].vertices.data(),
-					GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 
-					sizeof(GLuint) * 
-						objectVertices[2].indices.size(), 
-					objectVertices[2].indices.data(), 
-					GL_STATIC_DRAW);
-	
-	counts[0] = objectVertices[0].indices.size();
-	counts[2] = objectVertices[2].indices.size();
-
+	ogl::bind(dualPointBuffer, model->getDataPointer(2),
+			dualIndices, model->getIndexPointer(2));
 	redraw();
-
 }
 
-
 void Display::updateEquations(){
+	write = true;
 
-	// Get buffers for updating. Equations and dual points are oddly numbered
 	GLuint eqnBuffer = buffers[1];
 	GLuint eqnIndices = indices[1];
+	ogl::bind(eqnBuffer, model->getDataPointer(1), 
+			eqnIndices, model->getIndexPointer(1));
+
+	GLuint dualEqnBuffer = buffers[3];
+	GLuint dualEqnIndices = buffers[3];
+
+	ogl::bind(dualEqnBuffer, model->getDataPointer(3),
+			dualEqnIndices, model->getIndexPointer(3));
 	
-	glBindBuffer(GL_ARRAY_BUFFER, eqnBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eqnIndices);
-
-	// get necessary variables for iterating through equation list
-	vector<LinearEquation>::iterator eqns = model->getEIterator();
-	float ** intervals = model->getIntervals();
-
-	// storage for vertices and indices
-	int i = 0;
-	Eigen::IOFormat fmt(4, 0, ", ", "", "[", "]");
-	while(!model->iteratorAtEnd(eqns)){
-		Vector2f p(intervals[i][0], 
-					eqns->calculateY(intervals[i][0]));
-		Vector2f q(intervals[i][1], 
-					eqns->calculateY(intervals[i][1]));
-		if( std::find(objectVertices[1].vertices.begin(), objectVertices[1].vertices.end(), q) == objectVertices[1].vertices.end()
-		 	||
-		 	std::find(objectVertices[1].vertices.begin(), objectVertices[1].vertices.end(), p) == objectVertices[1].vertices.end()){
-
-			addVector(1, p);
-			addVector(1, q);
-		}
-		eqns += 1;
-		i += 1;
-	}
-
-	glBufferData(GL_ARRAY_BUFFER, objectVertices[1].vertices.size() * sizeof(Vector2f), objectVertices[1].vertices.data(), GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, objectVertices[1].indices.size() * sizeof(GLuint), objectVertices[1].indices.data(), GL_STATIC_DRAW);
-
-
-
-	GLuint dualPointBuffer = buffers[3];
-	GLuint dualIndices = indices[3];
-	glBindBuffer(GL_ARRAY_BUFFER,dualPointBuffer);	
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, dualIndices);
-
-	// Storage for dual points
-	vector<Point>::iterator dEqns = model->getDEIterator();
-	while(!model->iteratorAtEnd(dEqns)){
-		Vector2f p(dEqns->getX(), dEqns->getY());
-		if( std::find(objectVertices[3].vertices.begin(), objectVertices[3].vertices.end(), p) == objectVertices[3].vertices.end()){
-			
-			addVector(3, p);
-		}
-		dEqns += 1;
-	}
-
-	counts[ 1 ] = objectVertices[1].indices.size();
-	counts[3] = objectVertices[3].indices.size();
-
-	glBufferData(GL_ARRAY_BUFFER, objectVertices[3].vertices.size() * sizeof(Vector2f), objectVertices[3].vertices.data(), GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, objectVertices[3].indices.size() * sizeof(GLuint), objectVertices[3].indices.data(), GL_STATIC_DRAW);
 	redraw();
 }
 
@@ -298,13 +189,14 @@ GLFWwindow * Display::getWindow(){
 
 void Display::recreateMatrices(){
 	Matrix4f model_left, model_right;
-	model_left 		<< 	width/2.f, 0,0,width/2.f,
-			   			0,height,0,-height/2.f,
-			   			0,0,0,0,
+	model_left 		<< 	1,0,0,width,
+			   			0,1,0,0,
+			   			0,0,1,0,
 			   			0,0,0,1;
-	model_right 	<< 	width/2.f,0,0,width,
-						0,height,0,0,
-						0,0,1,0,
+
+	model_right 	<< 	width/2.f,0,0,width/4.f,
+						0,1,0,0,
+						0,0,0,0,
 						0,0,0,1;
 
 

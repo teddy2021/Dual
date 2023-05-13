@@ -18,12 +18,7 @@ Point convert(LinearEquation l){
 
 LinearEquation interpolate(Point p, Point q){
 	float m = (q.getY() - p.getY())/(q.getX() - p.getX());
-	float b1 = p.getY() - (m * p.getX());
-	float b2 = q.getY() - (m * q.getX());
-	float b = b1;
-	if(b1 != b2){
-		b = b1 == 0 ? b1 : b2;
-	}
+	float b = p.getY() - (m * p.getX());
 	return LinearEquation(m, b);
 
 }

@@ -7,15 +7,19 @@
 #include "Enums.hpp"
 #include "Equation.hpp"
 #include <GLFW/glfw3.h>
+#include <eigen3/Eigen/Dense>
 
+using Eigen::Vector2f;
 #ifndef CONTROL
 #define CONTROL
 
 class Controller{
 
 	private:
-		Point origin;
 	   	mouse_state ms;
+		draw_state ds;
+
+		Vector2f origin;
 		DataModel * model;
 		double  prev_x, prev_y;
 		double  dx, dy;

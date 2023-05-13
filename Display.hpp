@@ -17,12 +17,6 @@ using Eigen::Vector2f;
 #ifndef DISPLAY
 #define DISPLAY
 
-struct VectorSet {
-    std::vector<Eigen::Vector2f> vertices;
-    std::vector<GLuint> indices;
-};
-
-
 class Display{
 
 	private:
@@ -37,7 +31,6 @@ class Display{
 		GLuint buffers[4];
 		GLuint indices[4];
 
-		VectorSet objectVertices[4];
 		GLuint matrixID;
 		GLuint colourID;
 

@@ -11,8 +11,11 @@
 #include "Equation.hpp"
 #include <eigen3/Eigen/Dense>
 #include <fstream>
+#include <vector>
+#include "Enums.hpp"
 
-using Eigen::Vector2d;
+using std::vector;
+using Eigen::Vector2f;
 
 #ifndef ogl
 #include "ogl.hpp"
@@ -72,7 +75,7 @@ void genVBO(GLuint &buffer, GLuint &idxs, void * data,
 			size = sizeof(GLuint *);
 			break;
 		case 2:
-			size = sizeof(Vector2d);
+			size = sizeof(Vector2f);
 			break;
 		case 3:
 			size = sizeof(GLfloat *);
@@ -87,7 +90,7 @@ void genVBO(GLuint &buffer, GLuint &idxs, void * data,
 }
 
 int draw(GLFWwindow * window, GLuint buffer, 
-		GLuint count, short type, GLuint indices,
+		GLuint count, draw_state type, GLuint indices,
 		int array_no){
 
 	
@@ -104,7 +107,7 @@ int draw(GLFWwindow * window, GLuint buffer,
 			0,
 			(void*)0
 			);
-	if(1 == type){
+	if(point == type){
 		glDrawElements(
 			GL_POINTS,
 			count,
@@ -114,7 +117,7 @@ int draw(GLFWwindow * window, GLuint buffer,
 	}
 	else{
 		glDrawElements(
-			GL_LINE_STRIP,
+			GL_LINES,
 			count,
 			GL_UNSIGNED_INT,
 			(void*)0
@@ -125,5 +128,18 @@ int draw(GLFWwindow * window, GLuint buffer,
 
 	return 0;
 }
+
+
+void bind(GLuint v_buffer, vector<Vector2f> * vertices, 
+		GLuint i_buffer, vector<GLuint> *indices){
+
+	glBindBuffer(GL_ARRAY_BUFFER, v_buffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2f)* vertices->size(), 
+			vertices->data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*indices->size(),
+			indices->data(), GL_STATIC_DRAW);
+}
+
 
 #endif

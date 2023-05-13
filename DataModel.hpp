@@ -5,7 +5,10 @@
 #include "Equation.hpp"
 #include "Point.hpp"
 #include <vector>
+#include <eigen3/Eigen/Dense>
+#include <GL/glew.h>
 
+using Eigen::Vector2f;
 using std::vector;
 
 #ifndef MODEL
@@ -14,13 +17,17 @@ using std::vector;
 class DataModel{
 
 	private:
-		vector<LinearEquation> equations;
-		vector<Point>  points;
-		
-		vector<LinearEquation> dPoints;
-		vector<Point> dEquations;
+		vector<Vector2f> points;
+		vector<GLuint> pointIndices;
 
-		float ** intervals;
+		vector<Vector2f> equations;
+		vector<GLuint> eqnIndices;
+		
+		vector<Vector2f> dPoints;
+		vector<GLuint> dualPntIndices;
+
+		vector<Vector2f> dEquations;
+		vector<GLuint> dualEqnIndices;
 
 		int equationCount;
 		int pointCount;
@@ -29,21 +36,22 @@ class DataModel{
 	
 		DataModel();
 
-		void addEquation(LinearEquation l, float start, float end);
-		void addPoint(Point p);
+		void addEquation(Vector2f start, Vector2f end);
+		void addPoint(Vector2f p);
 
-		void removeEquation(LinearEquation l);
-		void removePoint(Point p);
+		void removeEquation(Vector2f start, Vector2f end );
+		void removePoint(Vector2f p);
 
-		vector<LinearEquation>::iterator getEIterator();
-		vector<Point>::iterator getPIterator();
+		vector<Vector2f> * getDataPointer(int set);
+		vector<GLuint> * getIndexPointer(int set);
 
-		vector<Point>::iterator getDEIterator();
-		vector<LinearEquation>::iterator getDPIterator();
-		bool iteratorAtEnd(vector<Point>::iterator it);
-		bool iteratorAtEnd(vector<LinearEquation>::iterator it);
+		vector<Vector2f>::iterator equationIterator();
+		vector<Vector2f>::iterator pointIterator();
 
-		float ** getIntervals();
+		vector<Vector2f>::iterator dualEquationIterator();
+		vector<Vector2f>::iterator dualPointIterator();
+		bool equationIteratorAtEnd(vector<Vector2f>::iterator it);
+		bool pointIteratorAtEnd(vector<Vector2f>::iterator it);
 
 		int getEquationCount();
 		int getPointCount();

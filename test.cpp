@@ -88,4 +88,31 @@ int main(){
 			laPtrTest[i].calculateY(5) << std::endl;
 	}
 
+	std::cout << "\n\n";
+
+	double a = (double)( rand() % 20 )/(double)(rand() % 21);
+	double b = (double)( rand() % 20 )/(double)(rand() % 21);
+	double c = (double)( rand() % 20 )/(double)(rand() % 21);
+	double d = (double)( rand() % 20 )/(double)(rand() % 21);
+
+	Point testab(a,b);
+	Point testcd(c,d);
+
+	Point testba(b,a);
+	Point testdc(d,c);
+
+	LinearEquation abba = interpolate(testab, testba); // 1,-1
+	LinearEquation cddc = interpolate(testcd, testdc);// 0,-0
+
+	LinearEquation abcd = interpolate(testab, testcd); //1, 0
+	LinearEquation dcba = interpolate(testdc, testba); // -0, -1
+
+	std::cout << "Rand a: " << a << "\tRand b: " << b << std::endl;
+	std::cout << "Pab: " << testab.toString() << "\tPba: " << testba.toString() << std::endl;
+	std::cout << "Labba: " << abba.toString() << "\tLcddc: " << cddc.toString() << std::endl;
+	std::cout << "Labcd: " << abcd.toString() << "\tLdcba: " << dcba.toString() << std::endl;
+
+	std::cout << "\nPab: " << testab.toString() << "\tC(Pab): " << convert(testab).toString() << std::endl;
+
+
 }
