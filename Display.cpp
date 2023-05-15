@@ -23,32 +23,25 @@ using Eigen::Matrix4f;
 #ifndef DISPLAY
 #include "Display.hpp"
 
-	GLuint s_buf, s_idx;
-	
-	Vector2f square[4] = {
-		{1.f,1.f},
-		{1.f,-1.f},
-		{-1.f,-1.f},
-		{-1.f,1.f}
-	};
-	GLuint squareIdcs[8] = {
-		0, 1,
-		1, 2,
-		2, 3,
-		3, 0
-	};
-
 bool write = false;
 
 void Display::draw(){
 	if(write){
 		Eigen::IOFormat fmt(4,0," ",",", "[", "]");
 		if(model->getEquationCount() != 0){
-			std::cout << (* model->getDataPointer(1) )[0].format(fmt) << std::endl;
-			std::cout << (* model->getDataPointer(1) )[1].format(fmt) << std::endl << std::endl;
+			Vector2f start = *(model->equationIterator());
+			Vector2f end = *(model->equationIterator() + 1);
+			
+			Vector4f p(start(0), start(1), 0, 1);
+			Vector4f q(end(0), end(1), 0, 1);
+
+			std::cout << "p: " << p.format(fmt) << " -> " << (primal * p).format(fmt) << std::endl;
+			std::cout << "q: " << q.format(fmt) << " -> " << (primal * q).format(fmt) << std::endl << std::endl;
 		}
 		if(model->getPointCount() != 0){
-			std::cout << (* model->getDataPointer(0) )[0].format(fmt) << std::endl;
+			Vector2f start = *(model->pointIterator());
+			Vector4f p(start(0), start(1), 0, 1);
+			std::cout << "p: " << p.format(fmt) << " -> " << (primal * p).format(fmt) << std::endl;
 		}
 		write = false;
 	}
@@ -57,14 +50,9 @@ void Display::draw(){
 	Vector4f colour[2] = {{255,255,0,255}, {255,0,255,1}};
 
 
-	shader.activate();
-	shader.setUniform(matrixID, (void*)dual.data(), 1);
-	shader.setUniform(colourID, (void*)colour[1].data(), 2);
-	ogl::draw(window, s_buf, 8, line, s_idx, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	Eigen::IOFormat fmt(4, 0, ", ",  "", "[", "]");
 	for(int i = 0; i < 4; i += 1){
 
 		shader.activate();
@@ -99,13 +87,6 @@ Display::Display(DataModel * m){
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
 
-	glGenBuffers(1, &s_buf);
-	glBindBuffer(GL_ARRAY_BUFFER, s_buf);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2f) * 4, &square[0], GL_STATIC_DRAW);
-	
-	glGenBuffers(1, &s_idx);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, s_idx);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * 8, &squareIdcs[0], GL_STATIC_DRAW);
 	shader = Shader("primal");
 
 	model = m;
@@ -149,6 +130,8 @@ void Display::updatePoints(){
 
 	ogl::bind(dualPointBuffer, model->getDataPointer(2),
 			dualIndices, model->getIndexPointer(2));
+	counts[0] = model->getPointCount();
+	counts[2] = model->getPointCount();
 	redraw();
 }
 
@@ -166,6 +149,8 @@ void Display::updateEquations(){
 	ogl::bind(dualEqnBuffer, model->getDataPointer(3),
 			dualEqnIndices, model->getIndexPointer(3));
 	
+	counts[1] = 2*model->getEquationCount();
+	counts[3] = 2*model->getEquationCount();
 	redraw();
 }
 
@@ -189,90 +174,58 @@ GLFWwindow * Display::getWindow(){
 
 void Display::recreateMatrices(){
 	Matrix4f model_left, model_right;
-	model_left 		<< 	1,0,0,width,
-			   			0,1,0,0,
+	model_left 		<< 	width/4.f,0,0,-width/4.f,
+			   			0,height/2.f,0,0,
 			   			0,0,1,0,
 			   			0,0,0,1;
 
-	model_right 	<< 	width/2.f,0,0,width/4.f,
-						0,1,0,0,
+	model_right 	<< 	width/4.f,0,0,width/4.f,
+						0,height/2.f,0,height/2.f,
 						0,0,0,0,
 						0,0,0,1;
 
 
+	Vector3f position, up, target;
+	position << 0,0,-1;
+	up << 0,1,0;
+	target << 0,0,1;
 
-	// l = left
-	// r = right
-	// p = position
-	// u = up
-	// t = target
-	// f = forward
-	Vector3f pl, pr, ul, ur, rl, rr, tl, tr, fl, fr; 
-
-	pl << 0,0,-1;
-	pr << 0,0,-1;
-
-	ul << 0,1,0;
-	ur << 0,1,0;
-
-	fl << 0,0,1;
-	fr << 0,0,1;
-
-	tl = (pl - fl).normalized();
-	tr = (pr - fr).normalized();
-
-	rl = ul.cross(fl).normalized();
-	rr = ur.cross(fr).normalized();
-
-	if(ul != tl.cross(rl).normalized()){
-		ul = tl.cross(rl).normalized();
-	}
-
-	if(ur != tr.cross(rr).normalized()){
-		ur = tr.cross(rr).normalized();
-	}
+	Vector3f rgt = position.cross(up).normalized();
 
 
-	Matrix4f view_left, view_right;
-	view_left 	<< 	rl(0), ul(0), -pl(0), 0,
-					rl(1), ul(1), -pl(1), 0,
-					rl(2), ul(2), -pl(2), 0,
-					-rl.dot(pl), -ul.dot(pl), -fl.dot(pl), 1;
+	Matrix4f view;
+	view << 
+		rgt(0), 	rgt(1), 	rgt(2), 	-rgt.dot(position),
+		up(0), 		up(1), 		up(2), 		-up.dot(position),
+		target(0), 	target(1), 	target(2), 	target.dot(position),
+		0, 			0, 			0, 			1;
 
-	view_right 	<< 	rr(0), ur(0), -pr(0), 0,
-					rr(1), ur(1), -pr(1), 0,
-					rr(2), ur(2), -pr(2), 0,
-					-rr.dot(pr), -ur.dot(pr), -fr.dot(pr), 1;
-   
 
 	
-	float left = 	(float)-width/2.f - 2;
-	float right = 	(float)width/2.f + 2;
+	float left = 	-(float)width/2.f;
+	float right = 	(float)width/2.f;
 
-	float bottom = 	(float)-height/2.f - 2;
-	float top = 	(float)height/2.f + 2;
+	float bottom = 	-(float)height/2.f;
+	float top = 	(float)height/2.f;
 
 	float near = 	-0.5f;
 	float far = 	1.f;
 
-	Matrix4f projection_left, projection_right;
-	projection_left 	<< 	2.f/(right - left), 0, 0, 0,
-							0, 2.f/(top - bottom), 0, 0,
-							0, 0, 1.f/(near - far), 0,
-							(right+left)/(right-left),
-							(bottom+top)/(bottom - top),
-						 	(near + far)/(near-far), 1;
+	float a = -(right+left)/(right-left);
+	float b = -(bottom+top)/(bottom - top);
+	float c = -(near + far)/(near-far);
 
-	projection_right 	<< 2.f/(right - left), 0, 0, 0,
-                           0, 2.f/(top - bottom), 0, 0,
-                           0, 0, 1.f/(near - far), 0,
-                           (right+left)/(right-left),
-						   (bottom+top)/(bottom - top), 
-						   (near + far)/(near-far), 1; 
+
+	Matrix4f projection;
+	projection 	<< 			2.f/(right - left),		0, 	0, 	a,
+							0, 	2.f/(top - bottom), 	0, 	b,
+							0, 	0, 	1.f/(near - far), 	c,
+							0, 	0, 	0, 	1;
+
 							
 
-	primal 	= projection_left 	* view_left 	* model_left;
-	dual 	= projection_right 	* view_right 	* model_right;
+	primal 	= projection 	* view	* model_left;
+	dual 	= projection 	* view 	* model_right;
 
 
 }

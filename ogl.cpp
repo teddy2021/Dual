@@ -134,7 +134,7 @@ void bind(GLuint v_buffer, vector<Vector2f> * vertices,
 		GLuint i_buffer, vector<GLuint> *indices){
 
 	glBindBuffer(GL_ARRAY_BUFFER, v_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2f)* vertices->size(), 
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vector2f) * vertices->size(), 
 			vertices->data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)*indices->size(),

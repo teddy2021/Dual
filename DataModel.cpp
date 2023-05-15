@@ -17,9 +17,18 @@ using Eigen::Vector2f;
 using std::vector;
 
 DataModel::DataModel(){
-	
+
 	equationCount = 0;
 	pointCount = 0;
+	Vector2f a,b,c,d;
+	a << -1,-1;
+	b << -1,1;
+	c << 1,1;
+	d << 1,-1;
+	addEquation(a,b);
+	addEquation(b,c);
+	addEquation(c,d);
+	addEquation(d,a);
 }
 
 
