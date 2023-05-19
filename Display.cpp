@@ -26,25 +26,6 @@ using Eigen::Matrix4f;
 bool write = false;
 
 void Display::draw(){
-	if(write){
-		Eigen::IOFormat fmt(4,0," ",",", "[", "]");
-		if(model->getEquationCount() != 0){
-			Vector2f start = *(model->equationIterator());
-			Vector2f end = *(model->equationIterator() + 1);
-			
-			Vector4f p(start(0), start(1), 0, 1);
-			Vector4f q(end(0), end(1), 0, 1);
-
-			std::cout << "p: " << p.format(fmt) << " -> " << (primal * p).format(fmt) << std::endl;
-			std::cout << "q: " << q.format(fmt) << " -> " << (primal * q).format(fmt) << std::endl << std::endl;
-		}
-		if(model->getPointCount() != 0){
-			Vector2f start = *(model->pointIterator());
-			Vector4f p(start(0), start(1), 0, 1);
-			std::cout << "p: " << p.format(fmt) << " -> " << (primal * p).format(fmt) << std::endl;
-		}
-		write = false;
-	}
 
 	draw_state types[4] = {point,line,line,point};
 	Vector4f colour[2] = {{255,255,0,255}, {255,0,255,1}};
@@ -102,14 +83,7 @@ Display::Display(DataModel * m){
 	matrixID = shader.getUniform("mvp");
 	colourID = shader.getUniform("colour");
 
-	Eigen::IOFormat fmt(4, 0, ", ", "", "[", "]");
-	std::cout << "Primal Before:\n" << primal << std::endl;
-	std::cout << "Dual Before:\n" << dual << std::endl;
 	recreateMatrices();
-
-	std::cout << "Primal After:\n" << primal << std::endl;
-	std::cout << "Dual After:\n" << dual << std::endl;
-
 
 	glViewport(0,0, width, height);
 	glPointSize(4);
@@ -131,7 +105,7 @@ void Display::updatePoints(){
 	ogl::bind(dualPointBuffer, model->getDataPointer(2),
 			dualIndices, model->getIndexPointer(2));
 	counts[0] = model->getPointCount();
-	counts[2] = model->getPointCount();
+	counts[2] = 2*model->getPointCount();
 	redraw();
 }
 
@@ -144,13 +118,13 @@ void Display::updateEquations(){
 			eqnIndices, model->getIndexPointer(1));
 
 	GLuint dualEqnBuffer = buffers[3];
-	GLuint dualEqnIndices = buffers[3];
+	GLuint dualEqnIndices = indices[3];
 
 	ogl::bind(dualEqnBuffer, model->getDataPointer(3),
 			dualEqnIndices, model->getIndexPointer(3));
 	
 	counts[1] = 2*model->getEquationCount();
-	counts[3] = 2*model->getEquationCount();
+	counts[3] = model->getEquationCount();
 	redraw();
 }
 
@@ -174,13 +148,13 @@ GLFWwindow * Display::getWindow(){
 
 void Display::recreateMatrices(){
 	Matrix4f model_left, model_right;
-	model_left 		<< 	width/4.f,0,0,-width/4.f,
+	model_left 		<< 	width,0,0,0,
 			   			0,height/2.f,0,0,
 			   			0,0,1,0,
 			   			0,0,0,1;
 
-	model_right 	<< 	width/4.f,0,0,width/4.f,
-						0,height/2.f,0,height/2.f,
+	model_right 	<< 	width,0,0,0,
+						0,height/2.f,0,0,
 						0,0,0,0,
 						0,0,0,1;
 

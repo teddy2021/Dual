@@ -14,15 +14,30 @@
 #ifndef CONTROL
 #include "Control.hpp"
 
+float Controller::transformWidth(float initial,  float offset){
+	return (initial / (float)display->getWidth()) + offset;
+}
+
+float Controller::transformHeight(float initial, float offset){
+	return (initial / (float)display->getHeight()) + offset;
+}
 
 void Controller::onLeftDown(){
 	ms = l_down;
 	ds = point;
+	origin << 0,0;
 	Point p = display->getMousePosition();
 	std::cout << "Origin in screen space: " << p.toString() << std::endl;
-	origin(0) = ( 2.f * p.getX() / (float)display->getWidth() ) - 1.f ; 
-	origin(1) = ( -2.f * p.getY() / (float)display->getHeight() ) + 1.f;
-	std::cout << "Origin normalized: " << origin << std::endl;
+	float x = p.getX();
+	float y = p.getY();
+	if(x <= display->getWidth() / 2.f){
+		origin(0) = transformWidth(x, -0.5f) ; 
+		origin(1) = transformHeight(-2.f * y, 1.f);;
+		std::cout << "Origin normalized: " << origin << std::endl;
+	}
+	else{
+		ms = neutral;
+	}
 }
 
 
@@ -34,10 +49,10 @@ void Controller::onLeftUp(){
 		display->updatePoints();
 	}
 	else{
-		float x2 = origin(0) + dx;
-		float y2 = origin(1) + dy;
-		
-		Vector2f q(x2, y2);
+		Point p = display->getMousePosition();
+		Vector2f q(
+				( transformWidth(p.getX(), -0.5f)),
+				( transformHeight( -2.f * p.getY(), 1.f)));
 
 		model->addEquation(origin,q);
 		display->updateEquations();
@@ -64,15 +79,17 @@ void Controller::onRightUp(){
 
 void Controller::updateMousePos(double x, double y){
 	if (ms == l_down){
-		double a = ( x/(float)display->getWidth() );
-		double b = ( y/(float)display->getHeight() );
-		dx += a - prev_x;
-		dy += b - prev_y;
+		double a =  transformWidth(x, -.5f);
+		double b =  transformHeight(-2.f*y, 1.f);
+		double deltax = a - prev_x;
+		double deltay = b - prev_y;
+		dx += deltax;
+		dy += deltay;
 
 		prev_x = a;
 		prev_y = b;
 		
-		if (dx > .2 || dy > .2){
+		if (abs(dx) > 5.f/display->getWidth() || abs( dy ) > 5.f/display->getHeight()){
 			ds = line;
 		}
 	}

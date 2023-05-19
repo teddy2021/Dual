@@ -25,6 +25,9 @@ class Controller{
 		double  dx, dy;
 		Display * display;
 
+		float transformWidth(float initial, float offset);
+		float transformHeight(float initial, float offset);
+
 	public:
 		Controller(DataModel * m){model = m; ms = neutral;};
 		void setDisplay(Display * d){display = d;};

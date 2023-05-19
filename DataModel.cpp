@@ -23,8 +23,8 @@ DataModel::DataModel(){
 	Vector2f a,b,c,d;
 	a << -1,-1;
 	b << -1,1;
-	c << 1,1;
-	d << 1,-1;
+	c << 0,1;
+	d << 0,-1;
 	addEquation(a,b);
 	addEquation(b,c);
 	addEquation(c,d);
@@ -39,8 +39,9 @@ void DataModel::addEquation(Vector2f start, Vector2f end){
 	eqnIndices.push_back(equations.size() - 1);
 	equationCount += 1;
 
+	Vector2f dir = end-start;
 	Vector2f dual;
-	dual << (end - start)(0), -(end-start)(1);
+	dual << -dir(0), dir(1);
 
 	dEquations.push_back(dual);
 	dualEqnIndices.push_back(dEquations.size() - 1);
@@ -50,7 +51,7 @@ void DataModel::addPoint(Vector2f p){
 	points.push_back(p);
 	pointIndices.push_back(points.size() - 1);
 
-	float m = p(0);
+	float m = -p(0);
 	float b = p(1);
 
 	float y1 = m*0 + b;
