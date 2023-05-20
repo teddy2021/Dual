@@ -153,8 +153,8 @@ void Display::recreateMatrices(){
 			   			0,0,1,0,
 			   			0,0,0,1;
 
-	model_right 	<< 	width,0,0,0,
-						0,height/2.f,0,0,
+	model_right 	<< 	width/4.f,0,0,width/16.f,
+						0,height/4.f,0,-height / 4.f,
 						0,0,0,0,
 						0,0,0,1;
 

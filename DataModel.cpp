@@ -41,7 +41,7 @@ void DataModel::addEquation(Vector2f start, Vector2f end){
 
 	Vector2f dir = end-start;
 	Vector2f dual;
-	dual << -dir(0), dir(1);
+	dual << -dir(0), -dir(1);
 
 	dEquations.push_back(dual);
 	dualEqnIndices.push_back(dEquations.size() - 1);
