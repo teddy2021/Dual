@@ -20,15 +20,6 @@ DataModel::DataModel(){
 
 	equationCount = 0;
 	pointCount = 0;
-	Vector2f a,b,c,d;
-	a << -1,-1;
-	b << -1,1;
-	c << 0,1;
-	d << 0,-1;
-	addEquation(a,b);
-	addEquation(b,c);
-	addEquation(c,d);
-	addEquation(d,a);
 }
 
 
@@ -187,5 +178,54 @@ int DataModel::getPointCount(){
 	return pointCount;
 }
 
+
+
+
+bool DataModel::getPoint(float x, float y, Vector2f & storage){
+
+	float left_bound = x - 0.01;
+	float right_bound = x + 0.01;
+	float upper_bound = y + 0.01;
+	float lower_bound = y - 0.01;
+
+
+	vector<Vector2f>::iterator pts = pointIterator();
+
+	while (!pointIteratorAtEnd(pts)){
+		float posX = (*pts)(0);
+		float posY = (*pts)(1);
+
+		if( left_bound <= posX && posX <= right_bound &&
+				lower_bound <= posY && posY <= upper_bound ){
+			storage = *pts;
+			return true;
+		} 
+		pts += 1;
+	}
+	return false;
+
+}
+
+
+bool DataModel::getLine(float x, float y, 
+		Vector2f & start_storage, Vector2f & end_storage){
+	
+	float lower_bound = y - 0.01;
+	float upper_bound = y + 0.01;
+
+	vector<Vector2f>::iterator eqns = equationIterator();
+
+	while( ! equationIteratorAtEnd(eqns) ){
+		Vector2f equation = (*(eqns + 1) ) - (*eqns) ;
+		float val = equation(0) * x + equation(1);
+		if( lower_bound <= val && val <= upper_bound){
+			start_storage = *eqns;
+			end_storage = *(eqns +1);
+			return true;
+		} 
+		eqns += 2;
+	}
+	return false;
+}
 
 #endif

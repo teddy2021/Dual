@@ -19,6 +19,9 @@ class Controller{
 	   	mouse_state ms;
 		draw_state ds;
 
+		controller_state cs;
+		Vector2f selection1, selection2;
+
 		Vector2f origin;
 		DataModel * model;
 		double  prev_x, prev_y;

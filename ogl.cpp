@@ -2,23 +2,30 @@
 //./ogl.cpp
 //
 
+#include "Enums.hpp"
+#include "Equation.hpp"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-
 #include <glm/glm.hpp>
+
 #include <stdio.h>
 #include <vector>
-#include "Equation.hpp"
-#include <eigen3/Eigen/Dense>
 #include <fstream>
-#include <vector>
-#include "Enums.hpp"
+
+#include <eigen3/Eigen/Dense>
+
 
 using std::vector;
+
 using Eigen::Vector2f;
+using Eigen::Vector4f;
 
 #ifndef ogl
 #include "ogl.hpp"
+
+
+
 
 
 GLFWwindow * setup(int width, int height){
@@ -27,6 +34,7 @@ GLFWwindow * setup(int width, int height){
 		perror("Failed to initialize glfw3");
 		return NULL;
 	}
+
 
 	glfwWindowHint(GLFW_SAMPLES, 1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -54,6 +62,10 @@ GLFWwindow * setup(int width, int height){
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
 	glClearColor(0,0,0,1);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	return window;
 }
 
@@ -99,30 +111,57 @@ int draw(GLFWwindow * window, GLuint buffer,
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices);
 	
 	glEnableVertexAttribArray(array_no);
-	glVertexAttribPointer(
-			array_no, 
-			2,
-			GL_FLOAT,
-			GL_FALSE,
-			0,
-			(void*)0
-			);
-	if(point == type){
-		glDrawElements(
-			GL_POINTS,
-			count,
-			GL_UNSIGNED_INT,
-			(void*)0
-			);
+	switch(type){
+		case point:
+			glVertexAttribPointer(
+					array_no, 
+					2,
+					GL_FLOAT,
+					GL_FALSE,
+					0,
+					(void*)0
+					);
+			glDrawElements(
+				GL_POINTS,
+				count,
+				GL_UNSIGNED_INT,
+				(void*)0
+				);
+			break;
+		case line:
+			glVertexAttribPointer(
+					array_no, 
+					2,
+					GL_FLOAT,
+					GL_FALSE,
+					0,
+					(void*)0
+					);
+			glDrawElements(
+				GL_LINES,
+				count,
+				GL_UNSIGNED_INT,
+				(void*)0
+				);
+			break;
+		case polygon:
+			glVertexAttribPointer(
+					array_no, 
+					3,
+					GL_FLOAT,
+					GL_FALSE,
+					0,
+					(void*)0
+					);
+			glDrawElements(
+				GL_TRIANGLES,
+				count,
+				GL_UNSIGNED_INT,
+				(void*)0
+				);
+			break;
 	}
-	else{
-		glDrawElements(
-			GL_LINES,
-			count,
-			GL_UNSIGNED_INT,
-			(void*)0
-			);
-	}
+	
 
 	glDisableVertexAttribArray(array_no);
 

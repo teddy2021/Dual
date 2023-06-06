@@ -113,8 +113,8 @@ Shader::Shader(const char * name){
 	char vs[len + 19];
 	char fs[len + 19];
 
-	strncpy(vs, "../Resources/\0", 14);
-	strncpy(fs, "../Resources/\0", 14);
+	strncpy(vs, "../Resources/Shaders/\0", 22);
+	strncpy(fs, "../Resources/Shaders/\0", 22);
 
 	strncat(vs, name, len);
 	strncat(fs, name, len);
@@ -132,6 +132,9 @@ GLuint Shader::getUniform(const char * uniformName){
 
 void Shader::setUniform(GLuint id, void *data, short type){
 	switch(type){
+		case 0:
+			glBindTexture(GL_TEXTURE_2D, *((GLuint *) data));
+			break;
 		case 1:
 			glUniformMatrix4fv(id, 1, GL_FALSE, (const float *)data);
 			break;

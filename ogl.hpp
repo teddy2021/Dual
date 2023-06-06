@@ -8,6 +8,9 @@
 #include <vector>
 #include "Enums.hpp"
 
+using Eigen::Vector2f;
+using Eigen::Vector4f;
+
 #ifndef ogl
 #define ogl
 

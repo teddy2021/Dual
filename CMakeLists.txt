@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.26)
 
 project(DualPlane)
 
@@ -39,10 +39,10 @@ include_directories(${GLFW_INCLUDE_DIRS})
 target_link_libraries(dual ${GLFW_LIBRARIES})
 message("GLFW variables: " ${GLFW_LIBRARIES} ${GLFW_INCLUDE_DIRS})
 
-find_package(glm)
-include_directories(${GLM_INCLUDE_DIRS})
-target_link_libraries(dual ${GLM_LIBRARIES})
-message("GLM variables: " ${GLM_LIBRARIES} ${GLM_INCLUDE_DIRS})
+#find_package(glm)
+#include_directories(${GLM_INCLUDE_DIRS})
+#target_link_libraries(dual ${GLM_LIBRARIES})
+#message("GLM variables: " ${GLM_LIBRARIES} ${GLM_INCLUDE_DIRS})
 
 find_package(GLEW)
 include_directories(${GLEW_INCLUDE_DIRS})
@@ -59,6 +59,11 @@ find_package(Eigen3 3.3)
 include_directories(${EIGEN_INCLUDE_DIRS})
 target_link_libraries(dual Eigen3::Eigen)
 message("Eigen variables: " ${EIGEN_INCLUDE_DIRS} Eigen3::Eigen)
+
+find_package(Freetype REQUIRED)
+include_directories(${FREETYPE_INCLUDE_DIRS})
+target_link_libraries(dual Freetype::Freetype)
+message("Freetype2 variables: " ${FREETYPE_INCLUDE_DIRS} Freetype::Freetype )
 
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/Headers.txt, 
