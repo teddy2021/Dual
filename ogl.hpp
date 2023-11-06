@@ -10,6 +10,7 @@
 
 using Eigen::Vector2f;
 using Eigen::Vector4f;
+using std::vector;
 
 #ifndef ogl
 #define ogl
@@ -27,4 +28,6 @@ int draw(GLFWwindow * window, GLuint buffer,
 void bind(GLuint v_buffer, std::vector<Eigen::Vector2f> * vertices,
 		GLuint i_buffer, std::vector<GLuint> * indices);
 
+void rebind(GLuint v_buffer, vector<Vector2f> *vertices,
+		GLuint i_buffer, vector<GLuint> *indices);
 #endif

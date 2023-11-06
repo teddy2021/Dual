@@ -180,5 +180,19 @@ void bind(GLuint v_buffer, vector<Vector2f> * vertices,
 			indices->data(), GL_STATIC_DRAW);
 }
 
+void rebind(GLuint v_buffer, vector<Vector2f> *vertices,
+		GLuint i_buffer, vector<GLuint> *indices){
+	glBindBuffer(GL_ARRAY_BUFFER, v_buffer);
+	glBufferSubData(GL_ARRAY_BUFFER,
+			0,
+			sizeof(Vector2f) * vertices->size(),
+			vertices->data());
+	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER,
+			0,
+			sizeof(GLuint) * indices->size(),
+			indices->data());
+}
 
 #endif

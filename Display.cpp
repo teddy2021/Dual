@@ -74,7 +74,6 @@ void Display::draw(){
 }
 
 Display::Display(DataModel * m){
-	state = "normal\n\n\nselecting";
 	width = 1080;
 	height = 608;
 	window = setup(width, height);
@@ -237,6 +236,9 @@ void Display::updateEquations(){
 	redraw();
 }
 
+void rebind(draw_state type){
+
+}
 
 void Display::redraw(){
 	draw();
@@ -338,18 +340,19 @@ Point Display::getMousePosition(){
 void Display::setText(string txt){
 	state = txt;
 	write = true;
+	redraw();
 }
 
 void Display::renderText(){
 	if(write){
-		std::cout << "rendering text " << state << std::endl;
 	}
 
 	string::const_iterator c = state.begin();
 
-	double x = 1.f;
-	double y = -height * .9;
-	double scale = 0.25;
+	const double xbound = 4.f;
+	double x = xbound;
+	double y = -height * 0.9f;
+	double scale = 0.35;
 	float heightmax = 0;
 
 
@@ -365,7 +368,7 @@ void Display::renderText(){
 	while(c != state.end() && *c != '\0'){
 		
 		if(*c == '\n'){
-			x = 0.1;
+			x = xbound;
 			y += heightmax;
 			c += 1;
 			continue;

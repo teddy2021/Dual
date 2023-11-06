@@ -57,9 +57,11 @@ class DataModel{
 		int getEquationCount();
 		int getPointCount();
 
-		bool getPoint(float x, float y, Vector2f & storage);
-		bool getLine(float x, float y, Vector2f & start_storage, Vector2f & end_storage);
-		
+		bool getPoint(float x, float y, Vector2f *& storage);
+		bool getLine(float x, float y, 
+				Vector2f *& start_storage, Vector2f *& end_storage,
+				Vector2f margin);
+
 };
 
 #endif

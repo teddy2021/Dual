@@ -5,16 +5,22 @@
 #include "Equation.hpp"
 #include "Point.hpp"
 #include "Util.hpp"
+
 #include <stdlib.h>
 #include <vector>
+#include <iostream>
+#include <algorithm>
+
 #include <eigen3/Eigen/Dense>
-#include <GL/glew.h>
+
 
 #ifndef MODEL
 #include "DataModel.hpp"
 
 using Eigen::Vector2f;
 using std::vector;
+using std::min;
+using std::max;
 
 DataModel::DataModel(){
 
@@ -179,9 +185,7 @@ int DataModel::getPointCount(){
 }
 
 
-
-
-bool DataModel::getPoint(float x, float y, Vector2f & storage){
+bool DataModel::getPoint(float x, float y, Vector2f *& storage){
 
 	float left_bound = x - 0.01;
 	float right_bound = x + 0.01;
@@ -197,7 +201,7 @@ bool DataModel::getPoint(float x, float y, Vector2f & storage){
 
 		if( left_bound <= posX && posX <= right_bound &&
 				lower_bound <= posY && posY <= upper_bound ){
-			storage = *pts;
+			storage = &( *pts );
 			return true;
 		} 
 		pts += 1;
@@ -207,25 +211,85 @@ bool DataModel::getPoint(float x, float y, Vector2f & storage){
 }
 
 
+float heronMethod(float l1, float l2, float l3){
+	float semiperim = (l1 + l2 + l3)/2.f;
+	float area = sqrt(semiperim * (semiperim - l1) * (semiperim - l2) * (semiperim - l3));
+	return area;
+}
+
 bool DataModel::getLine(float x, float y, 
-		Vector2f & start_storage, Vector2f & end_storage){
-	
-	float lower_bound = y - 0.01;
-	float upper_bound = y + 0.01;
+		Vector2f *& start_storage, Vector2f *& end_storage, 
+		Vector2f margin){
 
-	vector<Vector2f>::iterator eqns = equationIterator();
+	for(int i = 0; i < equations.size() - 1; i += 2){
+		if(x < min(equations[i](0), equations[i+1](0)) || 
+				x > max(equations[i](0), equations[i+1](0)) || 
+				y < min(equations[i](1), equations[i+1](1)) || 
+				y > max(equations[i](1), equations[i+1](1))){
+			continue;
+		}
 
-	while( ! equationIteratorAtEnd(eqns) ){
-		Vector2f equation = (*(eqns + 1) ) - (*eqns) ;
-		float val = equation(0) * x + equation(1);
-		if( lower_bound <= val && val <= upper_bound){
-			start_storage = *eqns;
-			end_storage = *(eqns +1);
+		Vector2f start = equations[i];
+		Vector2f end = equations[i+1];
+
+		Vector2f direction = end - start;
+
+		Vector2f normal = Vector2f(-direction(1), direction(0)).normalized();
+		normal(0) *= margin(0);
+		normal(1) *= margin(1);
+
+		Vector2f click(x, y);
+
+
+		//  Area is guaranteed to be either rectangular or trapezoidal
+		//  If sum of areas for triangles between vertices of 
+		//	trapezoid/rectangle are greater than the trapezoid's/rectangle's 
+		//	area, then the point is not within the trapezoid
+		// 
+		//   p1  p4
+		//    s41
+		//   ┌───┐
+		//   │\ /│
+		//s12│ x │s34
+        //   │/ \│
+        //   └───┘
+		//    s23
+		//  p2   p3
+
+		Vector2f p1 = start + normal;
+		Vector2f p2 = start - normal;
+		Vector2f p3 = end - normal;
+		Vector2f p4 = end + normal;
+
+		float l1 = (click - p1).norm();
+		float l2 = (click - p2).norm();
+		float l3 = (click - p3).norm();
+		float l4 = (click - p4).norm();
+
+
+		float s12 = (p2 - p1).norm();
+		float s23 = (p3 - p2).norm();
+		float s34 = (p4 - p3).norm();
+		float s41 = (p1 - p4).norm();
+
+		
+		float a1 = heronMethod(l1, l2, s12);
+		float a2 = heronMethod(l2, l3, s23);
+		float a3 = heronMethod(l3, l4, s34);
+		float a4 = heronMethod(l4, l1, s41);
+
+		float area = s23 * s34;
+		float sumareas = a1 + a2 + a3 + a4;
+		if(area == sumareas){
+			start_storage = &equations[i];
+			end_storage = &equations[i+1];
 			return true;
-		} 
-		eqns += 2;
+		}
 	}
 	return false;
 }
+
+
+
 
 #endif

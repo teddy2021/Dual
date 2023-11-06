@@ -20,7 +20,7 @@ class Controller{
 		draw_state ds;
 
 		controller_state cs;
-		Vector2f selection1, selection2;
+		Vector2f *selection1, *selection2;
 
 		Vector2f origin;
 		DataModel * model;
@@ -31,8 +31,10 @@ class Controller{
 		float transformWidth(float initial, float offset);
 		float transformHeight(float initial, float offset);
 
+		void updateState();
+
 	public:
-		Controller(DataModel * m){model = m; ms = neutral;};
+		Controller(DataModel * m){model = m; ms = neutral; cs = normal;};
 		void setDisplay(Display * d){display = d;};
 
 		void updateMousePos(double x, double y);
