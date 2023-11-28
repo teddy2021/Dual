@@ -17,21 +17,30 @@
 
 void Controller::onLeftDown(){
 
+	// update the state
 	ms = l_down;
 	ds = point;
+	// reset the origin (for the purpose of being assured its not a random value)
 	origin << 0,0;
+	// get the position of the click
 	Point p = display->getMousePosition();
 	float x = p.getX();
 	float y = p.getY();
 
+	// set the position of the origin to the initial click if the click happens
+	// inside the bounds of the window
 	std::cout << "left down with controller in ";
 	if(x <= display->getWidth() / 2.f){
 		origin(0) = transformWidth(x, -0.5f) ; 
 		origin(1) = transformHeight(-2.f * y, 1.f);;
 	}
 	else{
+		// neutralize the mouse state
 		ms = neutral;
 	}
+
+	// decide if the metaState of the system is for adding, moving, or removing
+	// elements
 	switch(cs){
 		case normal:
 			std::cout << "normal mode" << std::endl;
@@ -72,15 +81,19 @@ void Controller::onLeftDown(){
 			}
 			break;
 	}
+	// update the state representation string for debugging and communicating 
+	// the system state to the user
 	updateState();
 }
 
 void Controller::onLeftUp(){
 
+	// decide behaviour based on meta-state
 	std::cout << "mouse up with controller in ";
 	switch(cs){
 		case normal:
 			std::cout << "normal mode and mouse in ";
+			// further refine the behavior on the mouse state
 			switch(ms){
 				case l_down:
 					std::cout << "left down mode and draw state in ";
@@ -141,6 +154,8 @@ void Controller::onLeftUp(){
 		default:
 			break;
 	}
+
+	// reset context
 	dx = 0;
 	dy = 0;
 	prev_x = 0;
@@ -148,6 +163,7 @@ void Controller::onLeftUp(){
 	ms = neutral;
 	ds = point;
 	cs = normal;
+	// update the state string for communication purposes
 	updateState();
 }
 
@@ -166,16 +182,22 @@ void Controller::onRightUp(){
 
 
 void Controller::updateMousePos(double x, double y){
-		double a =  transformWidth(x, -.5f);
-		double b =  transformHeight(-2.f*y, 1.f);
-		double deltax = a - prev_x;
-		double deltay = b - prev_y;
-		dx += deltax;
-		dy += deltay;
 
-		prev_x = a;
-		prev_y = b;
+	// normalize the mounse position
+	double a =  transformWidth(x, -.5f);
+	double b =  transformHeight(-2.f*y, 1.f);
+	// calculate the change in position
+	double deltax = a - prev_x;
+	double deltay = b - prev_y;
+	// accumulate the movement
+	dx += deltax;
+	dy += deltay;
 
+	// update the previous position
+	prev_x = a;
+	prev_y = b;
+
+	// update the drawing state or move the position of the selected object
 	switch(ms){
 		case l_down:
 			if (abs(dx) > 10.f/display->getWidth() || 
@@ -213,6 +235,7 @@ void Controller::updateMousePos(double x, double y){
 
 void Controller::handleKeys(GLFWwindow * window, int key, 
 		int scancode, int action, int mods){
+	// update the metastate
 	if(action == GLFW_PRESS){ 
 		switch(key){
 		  case GLFW_KEY_C:
@@ -225,8 +248,8 @@ void Controller::handleKeys(GLFWwindow * window, int key,
 			   break;
 		   case GLFW_KEY_P:
 			   Eigen::IOFormat fmt(4,0,", ", "", "{","}");
-			   vector<Vector2f>::iterator eqns = model->equationIterator();
-			   vector<Vector2f>::iterator pts = model->pointIterator();
+			   vector<Vector2f>::iterator eqns = model->getEquationIterator();
+			   vector<Vector2f>::iterator pts = model->getPointIterator();
 
 			   for(int i = 0; i < model->getEquationCount(); i += 1){
 				   eqns += 2;

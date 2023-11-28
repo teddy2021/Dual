@@ -34,7 +34,7 @@ class Controller{
 		void updateState();
 
 	public:
-		Controller(DataModel * m){model = m; ms = neutral; cs = normal;};
+		Controller(DataModel * m){model = m; ms = neutral; cs = normal; ds=point;};
 		void setDisplay(Display * d){display = d;};
 
 		void updateMousePos(double x, double y);

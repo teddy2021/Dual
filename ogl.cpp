@@ -160,6 +160,8 @@ int draw(GLFWwindow * window, GLuint buffer,
 				(void*)0
 				);
 			break;
+		defualt:
+			break;
 	}
 	
 

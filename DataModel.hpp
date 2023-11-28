@@ -46,11 +46,11 @@ class DataModel{
 		vector<Vector2f> * getDataPointer(int set);
 		vector<GLuint> * getIndexPointer(int set);
 
-		vector<Vector2f>::iterator equationIterator();
-		vector<Vector2f>::iterator pointIterator();
+		vector<Vector2f>::iterator getEquationIterator();
+		vector<Vector2f>::iterator getPointIterator();
 
-		vector<Vector2f>::iterator dualEquationIterator();
-		vector<Vector2f>::iterator dualPointIterator();
+		vector<Vector2f>::iterator getDualEquationIterator();
+		vector<Vector2f>::iterator getDualPointIterator();
 		bool equationIteratorAtEnd(vector<Vector2f>::iterator it);
 		bool pointIteratorAtEnd(vector<Vector2f>::iterator it);
 

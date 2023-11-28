@@ -64,23 +64,34 @@ class Display{
 		Shader text;
 
 		GLuint textArray;
-		GLuint textBuffer;
+		GLuint textVertexBuffer;
+		GLuint textIndexBuffer
+		vector<Vector4f> textVerts;
+		vector<short unsigned> textIndices;
 
 		string state;
 		Vector4f textColour;
 
 		int width, height;
 
+		
+		void enterDrawState();
 		void draw();
+		void exitDrawState();
 		void recreateMatrices();
 		
 		Matrix4f calculateProjection(float left, float right, 
 				float bottom, float top,
 				float near, float far);
 
+		bool textModified;
+		void clearTextBuffer();
+		void updatTextBuffer();
+		void enterTextContext();
 		void renderText();
+		void exitTextContext();
 
-	private:
+
 		void addVector(int set_index, Vector2f v);
 
 	public:
